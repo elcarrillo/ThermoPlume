@@ -1,0 +1,15 @@
+LICENSE
+pyproject.toml
+src/thermoplume/__init__.py
+src/thermoplume/analytical.py
+src/thermoplume/model.py
+src/thermoplume/numerical.py
+src/thermoplume/parameters.py
+src/thermoplume/thermodynamics.py
+src/thermoplume.egg-info/PKG-INFO
+src/thermoplume.egg-info/SOURCES.txt
+src/thermoplume.egg-info/dependency_links.txt
+src/thermoplume.egg-info/requires.txt
+src/thermoplume.egg-info/top_level.txt
+tests/test_model.py
+tests/test_solver_agreement.py
