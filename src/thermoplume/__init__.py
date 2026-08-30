@@ -1,1 +1,6 @@
-from .parameters import default_params
+from .parameters import ThermoPlumeParameters
+
+
+__all__ = [
+    "ThermoPlumeParameters",
+]
