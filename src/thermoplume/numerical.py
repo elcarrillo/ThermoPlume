@@ -1,10 +1,19 @@
+# numerical thermodynamic state and neutral buoyancy root solver
+# python backend using scipy brentq
+# regime transitions supplied by thermodynamics.py
+
 import numpy as np
-from scipy.optimize import brentq ## root finder
+from scipy.optimize import brentq  # root finder
 
 from .parameters import ThermoPlumeParameters
+from .thermodynamics import regime_boundaries
 
 
-def numerical_thermo_state(xi, p):
+def numerical_thermo_state(
+    xi: float,
+    p: ThermoPlumeParameters,
+    ):
+
     # mixture mass fractions
     omega = p.Omega * xi
     Y_air = 1.0 - (1.0 + p.Omega) * xi
@@ -95,7 +104,11 @@ def numerical_thermo_state(xi, p):
     }
 
 
-def neutral_buoyancy_residual(xi, p):
+def neutral_buoyancy_residual(
+    xi: float, 
+    p: ThermoPlumeParameters,
+    ):
+
     state = numerical_thermo_state(xi, p)
 
     # zero at neutral buoyancy
@@ -106,7 +119,7 @@ def neutral_buoyancy_residual(xi, p):
 
 
 def find_numerical_roots(
-    p,
+    p: ThermoPlumeParameters,
     n_scan=3000,
     xi_min=1e-8,
     root_tol=1e-12,
@@ -127,39 +140,18 @@ def find_numerical_roots(
         n_scan,
     )
 
-    # write H_i as H0 + H1 xi
-    H0 = p.Cp_air * (
-        p.T_air - p.T_sat
-    )
-
-    H1 = (
-        p.Cp_m * (p.T_m - p.T_sat)
-        - (1.0 + p.Omega)
-        * p.Cp_air
-        * (p.T_air - p.T_sat)
-        + p.Omega
-        * p.Cp_l
-        * (p.T_w0 - p.T_sat)
-    )
-
-    # add regime boundaries directly to scan grid
+    # add exact thermodynamic regime transitions to scan grid
     extra_points = []
 
-    # A B boundary onset of boiling H_i = 0
-    if abs(H1) > 1e-14:
-        xi_AB = -H0 / H1
+    xi_AB, xi_BC = regime_boundaries(p)
 
-        if xi_min < xi_AB < xi_upper:
-            extra_points.append(xi_AB)
+    # onset of boiling
+    if xi_AB is not None and xi_min < xi_AB < xi_upper:
+        extra_points.append(xi_AB)
 
-    # B C boundary complete vaporization H_i = omega L_v
-    denom_BC = H1 - p.Omega * p.L_v
-
-    if abs(denom_BC) > 1e-14:
-        xi_BC = -H0 / denom_BC
-
-        if xi_min < xi_BC < xi_upper:
-            extra_points.append(xi_BC)
+    # complete vaporization
+    if xi_BC is not None and xi_min < xi_BC < xi_upper:
+        extra_points.append(xi_BC)
 
     # include exact regime transitions in root scan
     if extra_points:
@@ -199,7 +191,11 @@ def find_numerical_roots(
         if abs(f1) < 1e-10:
             roots.append(x1)
 
-        # bracketed root
+        # bracketed root where residual changes sign
+        # brentq refines xi in [x1, x2] until neutral_buoyancy_residual = 0
+        # args passes model params p to the residual function
+        # xtol and rtol control absolute and relative root tolerance
+        # maxiter limits solver iterations
         if f1 * f2 < 0.0:
             root = brentq(
                 neutral_buoyancy_residual,
