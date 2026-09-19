@@ -9,7 +9,13 @@
 
 namespace {
 
+using ResidualFunction = double (*)(
+    double,
+    const thermoplume::Parameters&
+);
+
 double brent_root(
+    ResidualFunction residual,
     const thermoplume::Parameters& p,
     double x1,
     double x2,
@@ -22,13 +28,13 @@ double brent_root(
     double c = x2;
 
     double fa =
-        thermoplume::neutral_buoyancy_residual(
+        residual(
             a,
             p
         );
 
     double fb =
-        thermoplume::neutral_buoyancy_residual(
+        residual(
             b,
             p
         );
@@ -189,7 +195,7 @@ double brent_root(
         }
 
         fb =
-            thermoplume::neutral_buoyancy_residual(
+            residual(
                 b,
                 p
             );
@@ -325,6 +331,54 @@ double neutral_buoyancy_residual(
 }
 
 
+ThermoState vapor_thermo_state(
+    double xi,
+    const Parameters& p
+) {
+    const double omega = p.Omega * xi;
+    const double Y_air = 1.0 - (1.0 + p.Omega) * xi;
+
+    const double R_mix =
+        xi * p.n * p.R_g
+        + omega * p.R_w
+        + Y_air * p.R_air;
+
+    const double numerator =
+        xi * p.Cp_m * p.T_m
+        + omega * p.Cp_w * p.T_w
+        + Y_air * p.Cp_air * p.T_air;
+
+    const double denominator =
+        xi * p.Cp_m
+        + omega * p.Cp_w
+        + Y_air * p.Cp_air;
+
+    const double T = numerator / denominator;
+
+    return {
+        T,
+        R_mix,
+        "vapor",
+        0.0,
+        Y_air,
+        omega,
+    };
+}
+
+
+double vapor_neutral_buoyancy_residual(
+    double xi,
+    const Parameters& p
+) {
+    const ThermoState state =
+        vapor_thermo_state(xi, p);
+
+    return (
+        state.R_mix * state.T
+        - p.R_air * p.T_air
+    );
+}
+
 std::vector<double> find_numerical_roots(
     const Parameters& p,
     int n_scan,
@@ -459,6 +513,7 @@ std::vector<double> find_numerical_roots(
         if (f1 * f2 < 0.0) {
             roots.push_back(
                 brent_root(
+                    neutral_buoyancy_residual,
                     p,
                     x1,
                     x2,
@@ -499,6 +554,107 @@ std::vector<double> find_numerical_roots(
             || std::abs(
                 root - unique_roots.back()
             ) > 1e-8
+        ) {
+            unique_roots.push_back(root);
+        }
+    }
+
+    return unique_roots;
+}
+
+
+std::vector<double> find_vapor_numerical_roots(
+    const Parameters& p,
+    int n_scan,
+    double xi_min,
+    double root_tol
+) {
+    if (n_scan < 2) {
+        throw std::invalid_argument(
+            "n_scan must be at least 2"
+        );
+    }
+
+    const double xi_max = 1.0 / (1.0 + p.Omega);
+
+    if (xi_max <= xi_min) {
+        return {};
+    }
+
+    const double xi_upper = xi_max * (1.0 - 1e-12);
+
+    std::vector<double> xi_grid;
+    xi_grid.reserve(static_cast<std::size_t>(n_scan));
+
+    for (int i = 0; i < n_scan; ++i) {
+        const double fraction =
+            static_cast<double>(i)
+            / static_cast<double>(n_scan - 1);
+
+        xi_grid.push_back(
+            xi_min + fraction * (xi_upper - xi_min)
+        );
+    }
+
+    std::vector<double> residuals;
+    residuals.reserve(xi_grid.size());
+
+    for (double xi : xi_grid) {
+        residuals.push_back(
+            vapor_neutral_buoyancy_residual(xi, p)
+        );
+    }
+
+    std::vector<double> roots;
+
+    for (std::size_t i = 0; i + 1 < xi_grid.size(); ++i) {
+        const double x1 = xi_grid[i];
+        const double x2 = xi_grid[i + 1];
+        const double f1 = residuals[i];
+        const double f2 = residuals[i + 1];
+
+        if (!std::isfinite(f1) || !std::isfinite(f2)) {
+            continue;
+        }
+
+        if (std::abs(f1) < 1e-10) {
+            roots.push_back(x1);
+        }
+
+        if (f1 * f2 < 0.0) {
+            roots.push_back(
+                brent_root(
+                    vapor_neutral_buoyancy_residual,
+                    p,
+                    x1,
+                    x2,
+                    root_tol,
+                    root_tol,
+                    200
+                )
+            );
+        }
+    }
+
+    if (
+        !residuals.empty()
+        && std::abs(residuals.back()) < 1e-10
+    ) {
+        roots.push_back(xi_grid.back());
+    }
+
+    std::sort(roots.begin(), roots.end());
+
+    std::vector<double> unique_roots;
+
+    for (double root : roots) {
+        if (root <= 1e-7) {
+            continue;
+        }
+
+        if (
+            unique_roots.empty()
+            || std::abs(root - unique_roots.back()) > 1e-8
         ) {
             unique_roots.push_back(root);
         }

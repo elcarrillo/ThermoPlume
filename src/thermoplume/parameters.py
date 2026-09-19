@@ -10,6 +10,7 @@ class ThermoPlumeParameters:
     # temp K
     T_m: float = 1100.0
     T_air: float = 273.15
+    T_w: float = 373.15
     T_w0: float = 273.15
     T_sat: float = 373.15
 

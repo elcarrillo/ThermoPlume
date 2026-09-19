@@ -11,6 +11,7 @@ struct Parameters {
     // temp K
     double T_m = 1100.0;
     double T_air = 273.15;
+    double T_w = 373.15;
     double T_w0 = 273.15;
     double T_sat = 373.15;
 

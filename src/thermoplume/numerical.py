@@ -229,3 +229,130 @@ def find_numerical_roots(
             unique_roots.append(root)
 
     return unique_roots
+
+# ======================================================================
+# vapor-only numerical source state
+# external water enters directly as vapor at T_w
+# ======================================================================
+
+def vapor_thermo_state(
+    xi: float,
+    p: ThermoPlumeParameters,
+):
+    omega = p.Omega * xi
+    Y_air = 1.0 - (1.0 + p.Omega) * xi
+
+    R_mix = (
+        xi * p.n * p.R_g
+        + omega * p.R_w
+        + Y_air * p.R_air
+    )
+
+    numerator = (
+        xi * p.Cp_m * p.T_m
+        + omega * p.Cp_w * p.T_w
+        + Y_air * p.Cp_air * p.T_air
+    )
+
+    denominator = (
+        xi * p.Cp_m
+        + omega * p.Cp_w
+        + Y_air * p.Cp_air
+    )
+
+    T = numerator / denominator
+
+    return {
+        "T": T,
+        "R_mix": R_mix,
+        "regime": "vapor",
+        "Y_air": Y_air,
+        "omega_eff": omega,
+    }
+
+
+def vapor_neutral_buoyancy_residual(
+    xi: float,
+    p: ThermoPlumeParameters,
+):
+    state = vapor_thermo_state(xi, p)
+
+    return (
+        state["R_mix"] * state["T"]
+        - p.R_air * p.T_air
+    )
+
+
+def find_vapor_numerical_roots(
+    p: ThermoPlumeParameters,
+    n_scan=3000,
+    xi_min=1e-8,
+    root_tol=1e-12,
+):
+    xi_max = 1.0 / (1.0 + p.Omega)
+
+    if xi_max <= xi_min:
+        return []
+
+    xi_upper = xi_max * (1.0 - 1e-12)
+
+    xi_grid = np.linspace(
+        xi_min,
+        xi_upper,
+        n_scan,
+    )
+
+    F = np.asarray([
+        vapor_neutral_buoyancy_residual(xi, p)
+        for xi in xi_grid
+    ])
+
+    roots = []
+
+    for i in range(len(xi_grid) - 1):
+        x1 = xi_grid[i]
+        x2 = xi_grid[i + 1]
+
+        f1 = F[i]
+        f2 = F[i + 1]
+
+        if not (
+            np.isfinite(f1)
+            and np.isfinite(f2)
+        ):
+            continue
+
+        if abs(f1) < 1e-10:
+            roots.append(x1)
+
+        if f1 * f2 < 0.0:
+            root = brentq(
+                vapor_neutral_buoyancy_residual,
+                x1,
+                x2,
+                args=(p,),
+                xtol=root_tol,
+                rtol=root_tol,
+                maxiter=200,
+            )
+
+            roots.append(root)
+
+    if abs(F[-1]) < 1e-10:
+        roots.append(xi_grid[-1])
+
+    roots = sorted(roots)
+
+    unique_roots = []
+
+    for root in roots:
+        if root <= 1e-7:
+            continue
+
+        if not unique_roots:
+            unique_roots.append(root)
+
+        elif abs(root - unique_roots[-1]) > 1e-8:
+            unique_roots.append(root)
+
+    return unique_roots

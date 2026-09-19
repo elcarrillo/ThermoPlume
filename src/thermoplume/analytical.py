@@ -369,4 +369,79 @@ def xi_crit_liquid(p, previous_xi=None):
 
     return xi_best, regime, candidates
 
+# ======================================================================
+# vapor-only source threshold
+# external water enters directly as vapor at T_w
+# ======================================================================
 
+def vapor_source_coeffs(p):
+    O = p.Omega
+
+    N0 = p.Cp_air * p.T_air
+
+    N1 = (
+        p.Cp_m * p.T_m
+        + O * p.Cp_w * p.T_w
+        - (1.0 + O) * p.Cp_air * p.T_air
+    )
+
+    D1 = (
+        p.Cp_m
+        + O * p.Cp_w
+        - (1.0 + O) * p.Cp_air
+    )
+
+    R1 = (
+        p.n * p.R_g
+        + O * p.R_w
+        - (1.0 + O) * p.R_air
+    )
+
+    a = R1 * N1
+
+    b = (
+        p.R_air * N1
+        + R1 * N0
+        - p.R_air * p.T_air * D1
+    )
+
+    c = 0.0
+
+    return a, b, c
+
+
+def xi_crit_vapor(
+    p,
+    previous_xi=None,
+):
+    if abs(p.Omega) < 1e-14:
+        return xi_crit_dry(p)
+
+    candidates = []
+
+    a, b, c = vapor_source_coeffs(p)
+
+    for xi in quadratic_roots(a, b, c):
+        if xi <= 1e-12:
+            continue
+
+        if not in_bounds(xi, p):
+            continue
+
+        if not valid_air_fraction(xi, p):
+            continue
+
+        candidates.append(xi)
+
+    if not candidates:
+        return np.nan
+
+    if previous_xi is None or not np.isfinite(previous_xi):
+        target = xi_crit_dry(p)
+    else:
+        target = previous_xi
+
+    return min(
+        candidates,
+        key=lambda xi: abs(xi - target),
+    )

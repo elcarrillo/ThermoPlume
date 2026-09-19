@@ -24,14 +24,32 @@ ThermoState numerical_thermo_state(
     const Parameters& p
 );
 
+ThermoState vapor_thermo_state(
+    double xi,
+    const Parameters& p
+);
+
 
 double neutral_buoyancy_residual(
     double xi,
     const Parameters& p
 );
 
+double vapor_neutral_buoyancy_residual(
+    double xi,
+    const Parameters& p
+);
+
 
 std::vector<double> find_numerical_roots(
+    const Parameters& p,
+    int n_scan = 3000,
+    double xi_min = 1e-8,
+    double root_tol = 1e-12
+);
+
+
+std::vector<double> find_vapor_numerical_roots(
     const Parameters& p,
     int n_scan = 3000,
     double xi_min = 1e-8,
