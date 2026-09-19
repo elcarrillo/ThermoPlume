@@ -282,16 +282,21 @@ max_rel_error = (
 fig, axes = plt.subplots(
     1,
     2,
-    figsize=(11, 5),
+    figsize=(10.5, 4.6),
 )
-
-ax = axes[0]
 
 regime_markers = {
     "A": "o",
     "B": "s",
     "C": "^",
 }
+
+
+# ------------------------------------------------------------
+# analytical versus numerical
+# ------------------------------------------------------------
+
+ax = axes[0]
 
 for regime in ("A", "B", "C"):
 
@@ -307,8 +312,8 @@ for regime in ("A", "B", "C"):
         subset["xi_analytical"],
         subset["xi_numerical"],
         marker=regime_markers[regime],
-        s=24,
-        alpha=0.7,
+        s=16,
+        alpha=0.45,
         label=f"Regime {regime}",
     )
 
@@ -327,7 +332,7 @@ ax.plot(
     limits,
     limits,
     linestyle="--",
-    linewidth=1.2,
+    linewidth=1.4,
     label="1:1",
 )
 
@@ -346,16 +351,18 @@ ax.set_title(
     "(a) Analytical–numerical agreement"
 )
 
-ax.legend()
+ax.legend(
+    frameon=False
+)
 
 
 # ------------------------------------------------------------
-# error panel
+# numerical error
 # ------------------------------------------------------------
 
 ax = axes[1]
 
-error_floor = 1e-16
+error_floor = np.finfo(float).eps
 
 for regime in ("A", "B", "C"):
 
@@ -374,10 +381,16 @@ for regime in ("A", "B", "C"):
             error_floor,
         ),
         marker=regime_markers[regime],
-        s=24,
-        alpha=0.7,
-        label=f"Regime {regime}",
+        s=16,
+        alpha=0.45,
     )
+
+ax.axhline(
+    error_floor,
+    linestyle="--",
+    linewidth=1.2,
+    label="machine precision",
+)
 
 ax.set_yscale("log")
 
@@ -393,23 +406,12 @@ ax.set_title(
     "(b) Numerical error"
 )
 
-ax.legend()
-
-
-fig.text(
-    0.5,
-    0.01,
-    (
-        f"{len(comparison)} finite thresholds; "
-        f"max absolute error = {max_abs_error:.2e}; "
-        f"max relative error = {max_rel_error:.2e}"
-    ),
-    ha="center",
+ax.legend(
+    frameon=False
 )
 
-fig.tight_layout(
-    rect=(0.0, 0.05, 1.0, 1.0)
-)
+
+fig.tight_layout()
 
 fig.savefig(
     png_path,
