@@ -7,10 +7,10 @@ It includes analytical solutions and an independent numerical solver for thermod
 ## Installation
 
 ```bash
-git clone git@github.com:elcarrillo/thermoplume.git
-cd thermoplume
+git clone git@github.com:elcarrillo/ThermoPlume.git
+cd ThermoPlume
 pip install -e .
-````
+```
 
 ## Quick start
 
@@ -47,9 +47,10 @@ result = model.solve(
 ```bash
 python tests/test_solver_agreement.py
 python tests/test_model.py
+python tests/test_cpp_backend.py
+python tests/test_vapor_model.py
 ```
 
 ## License
 
 See [LICENSE](LICENSE).
-
