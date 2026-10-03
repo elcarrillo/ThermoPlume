@@ -1,15 +1,32 @@
+# Python
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
-.DS_Store
+*.egg-info/
+
+# Virtual environments
 .env
 .venv/
 venv/
 
+# Jupyter
+.ipynb_checkpoints/
+
+# Build and distribution
+build/
+dist/
+wheelhouse/
+_skbuild/
+
+# macOS
+.DS_Store
+
+# Generated ThermoPlume analysis files
 notebooks/xi_crit_temp_Omega_sweep.csv
 notebooks/xi_crit_liquid_Omega_sweep.csv
 notebooks/no_root_onsets_by_temperature.csv
 notebooks/regime_envelopes_full_range.csv
 notebooks/regime_envelopes_representative_range.csv
 notebooks/representative_branch_values.csv
+
+# Local reference material
 notebooks/data/barone_2022/2022GL099293-sup-0001-SI-S01.pdf
