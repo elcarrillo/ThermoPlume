@@ -1,5 +1,7 @@
 # ThermoPlume
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23117065.svg)](https://doi.org/10.5281/zenodo.23117065)
+
 ThermoPlume is a Python package for calculating thermodynamic neutral-buoyancy thresholds in volcanic eruption plumes, including the effects of external water.
 
 It includes analytical solutions and an independent numerical solver for thermodynamic regimes with no boiling, partial boiling, and complete vaporization.

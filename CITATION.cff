@@ -6,6 +6,7 @@ authors:
     given-names: "Edgar L."
 version: "0.1.0b2"
 date-released: 2026-10-03
+doi: "10.5281/zenodo.23117066"
 repository-code: "https://github.com/elcarrillo/ThermoPlume"
 url: "https://github.com/elcarrillo/ThermoPlume"
 license: MIT
